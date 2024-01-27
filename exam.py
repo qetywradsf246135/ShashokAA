@@ -4,7 +4,7 @@ import sys
 from geant4_pybind import *
 import math 
 
-# Detector construction
+#Detector construction
 class ExamDetectorConstruction(G4VUserDetectorConstruction):
  
    def __init__(self):
@@ -14,15 +14,22 @@ class ExamDetectorConstruction(G4VUserDetectorConstruction):
    def Construct(self):
       nist = G4NistManager.Instance()
 
-      envelop_x = 35*cm
-      envelop_y = 35*cm
-      envelop_z = 35*cm
+      envelop_x = 30*cm
+      envelop_y = 30*cm
+      envelop_z = 30*cm
 
       envelop_mat = nist.FindOrBuildMaterial("G4_AIR")
+  
+      world_x = 1.3*envelop_x
+      world_y = 1.3*envelop_y
+      world_z = 1.3*envelop_z
 
-      box_x = 1.2*envelop_x
-      box_y = 1.2*envelop_y
-      box_z = 1.2*envelop_z
+      leg_r = 0.3*envelop_x
+      leg_h = 0.5*envelop_z
+
+      box_x = 2.2*leg_r
+      box_y = 2.2*leg_r
+      box_z = 2.2*leg_h
 
       zTrans = G4Transform3D(G4RotationMatrix(), G4ThreeVector(0.1*envelop_x, 0, 0.05*envelop_z))
 
@@ -36,7 +43,7 @@ class ExamDetectorConstruction(G4VUserDetectorConstruction):
       checkOverlaps = True
 
 #.....World creating 
-      sWorld = G4Box("World", 0.5*envelop_x, 0.5*envelop_y, 0.5*envelop_z)
+      sWorld = G4Box("World", 0.5*world_x, 0.5*world_y, 0.5*world_z)
  
       lWorld = G4LogicalVolume(sWorld, envelop_mat, "World")
  
@@ -45,14 +52,15 @@ class ExamDetectorConstruction(G4VUserDetectorConstruction):
 #.....Geometry volume creating
       sBox = G4Box("Box", 0.5*box_x, 0.5*box_y, 0.5*box_z)
 
-      sLeg = G4Tubs("Leg", 0, 0.3*envelop_x, 0.5*envelop_y, 2*math.pi, 2*math.pi)
+      sLeg = G4Tubs("Leg", 0, leg_r, leg_h, 2*math.pi, 2*math.pi)
       
       sProsthesis = G4Tubs("Prosthesis", 0, 0.05*envelop_x, 0.5*envelop_y, 2*math.pi, 2*math.pi)
-      
-      sCut = G4SubtractionSolid("Cut", sProsthesis, sLeg, zTrans)
+
+      sCut = G4SubtractionSolid ("Cut", sLeg, sProsthesis, zTrans)
+
 
 #.....Logical volume creating
-      lLeg = G4LogicalVolume(sLeg, mat_leg, "Leg")
+      lCut = G4LogicalVolume(sCut, mat_leg, "Leg")
       
       lProsthesis = G4LogicalVolume(sProsthesis, mat_p, "Prosthesis")
 
@@ -61,14 +69,14 @@ class ExamDetectorConstruction(G4VUserDetectorConstruction):
 #.....Physical volume creating
       G4PVPlacement(None, G4ThreeVector(), lBox, "Box", lWorld, False, 0, checkOverlaps)
 
-      G4PVPlacement(None, G4ThreeVector(), lLeg, "Leg", lBox, True, 0, checkOverlaps)
+      G4PVPlacement(None, G4ThreeVector(), lCut, "Leg", lBox, True, 0, checkOverlaps)
       
-      G4PVPlacement(None, G4ThreeVector(0.1*envelop_x, 0.05*envelop_y, 0), lProsthesis, "Prosthesis", lLeg, True, 0, checkOverlaps)
+      G4PVPlacement(None, G4ThreeVector(0.1*envelop_x, 0, 0), lProsthesis, "Prosthesis", lCut, True, 0, checkOverlaps)
 
-      self.fScoringVolume = lBox
+      self.fScoringVolume = lCut
 
       return pWorld
-# End of detector construction
+#End of detector construction
 
 # Action initialization
 class ExamActionInitialization(G4VUserActionInitialization):
